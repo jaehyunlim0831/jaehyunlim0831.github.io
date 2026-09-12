@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>다중 주사위 굴리기</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f0f2f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+    }
+
+    /* 컨트롤 영역 (셀렉트 박스 + 버튼) */
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 40px;
+      background: #ffffff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    label {
+      font-size: 15px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    select {
+      padding: 8px 12px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background-color: #fff;
+      color: #1e293b;
+      cursor: pointer;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: #2563eb;
+    }
+
+    .roll-btn {
+      padding: 9px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .roll-btn:hover {
+      background-color: #1d4ed8;
+    }
+
+    .roll-btn:active {
+      transform: scale(0.97);
+    }
+
+    .roll-btn:disabled, select:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* 주사위들이 나열되는 컨테이너 */
+    .dice-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      max-width: 800px;
+      min-height: 120px;
+      margin-bottom: 30px;
+    }
+
+    /* 3D 씬 (주사위 1개의 공간, 크기: 90px) */
+    .scene {
+      width: 90px;
+      height: 90px;
+      perspective: 500px;
+    }
+
+    /* 주사위 큐브 */
+    .dice {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: translateZ(-45px) rotateX(0deg) rotateY(0deg);
+      transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+
+    /* 주사위 면 */
+    .face {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.06);
+      display: grid;
+      padding: 10px;
+    }
+
+    /* 눈(점) 스타일 */
+    .dot {
+      width: 14px;
+      height: 14px;
+      background-color: #1e293b;
+      border-radius: 50%;
+      align-self: center;
+      justify-self: center;
+    }
+
+    /* 면별 3D 위치 (크기가 90px이므로 절반인 45px) */
+    .front  { transform: rotateY(0deg) translateZ(45px); }
+    .back   { transform: rotateY(180deg) translateZ(45px); }
+    .right  { transform: rotateY(90deg) translateZ(45px); }
+    .left   { transform: rotateY(-90deg) translateZ(45px); }
+    .top    { transform: rotateX(90deg) translateZ(45px); }
+    .bottom { transform: rotateX(-90deg) translateZ(45px); }
+
+    /* 눈금 배치 */
+    .front {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .front .dot {
+      width: 20px;
+      height: 20px;
+      background-color: #ef4444;
+    }
+
+    .back {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .back .dot:nth-child(1) { grid-area: 1 / 1; }
+    .back .dot:nth-child(2) { grid-area: 2 / 2; }
+
+    .right {
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+    }
+    .right .dot:nth-child(1) { grid-area: 1 / 1; }
+    .right .dot:nth-child(2) { grid-area: 2 / 2; }
+    .right .dot:nth-child(3) { grid-area: 3 / 3; }
+
+    .left {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+
+    .top {
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+    }
+    .top .dot:nth-child(1) { grid-area: 1 / 1; }
+    .top .dot:nth-child(2) { grid-area: 1 / 3; }
+    .top .dot:nth-child(3) { grid-area: 2 / 2; }
+    .top .dot:nth-child(4) { grid-area: 3 / 1; }
+    .top .dot:nth-child(5) { grid-area: 3 / 3; }
+
+    .bottom {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+    }
+
+    /* 결과 출력창 */
+    .result-box {
+      min-height: 48px;
+      text-align: center;
+    }
+
+    .result-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .result-total {
+      font-size: 15px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 컨트롤 패널 -->
+  <div class="controls">
+    <label for="diceCount">주사위 개수:</label>
+    <select id="diceCount">
+      <option value="1">1개</option>
+      <option value="2">2개</option>
+      <option value="3">3개</option>
+      <option value="4">4개</option>
+      <option value="5">5개</option>
+    </select>
+    <button class="roll-btn" id="rollBtn">굴리기</button>
+  </div>
+
+  <!-- 주사위 렌더링 영역 -->
+  <div class="dice-container" id="diceContainer"></div>
+
+  <!-- 결과 영역 -->
+  <div class="result-box">
+    <div class="result-text" id="resultText">주사위를 굴려보세요!</div>
+    <div class="result-total" id="resultTotal"></div>
+  </div>
+
+  <script>
+    const diceContainer = document.getElementById('diceContainer');
+    const diceCountSelect = document.getElementById('diceCount');
+    const rollBtn = document.getElementById('rollBtn');
+    const resultText = document.getElementById('resultText');
+    const resultTotal = document.getElementById('resultTotal');
+
+    // 각 주사위 눈금에 해당하는 회전 기본 각도
+    const faceRotations = {
+      1: { x: 0,   y: 0 },
+      2: { x: 0,   y: 180 },
+      3: { x: 0,   y: -90 },
+      4: { x: 0,   y: 90 },
+      5: { x: -90, y: 0 },
+      6: { x: 90,  y: 0 }
+    };
+
+    // 주사위 1개 HTML 템플릿 생성
+    function createDiceElement() {
+      const scene = document.createElement('div');
+      scene.className = 'scene';
+      scene.innerHTML = `
+        <div class="dice">
+          <div class="face front"><span class="dot"></span></div>
+          <div class="face back"><span class="dot"></span><span class="dot"></span></div>
+          <div class="face right"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="face left"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="face top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="face bottom"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        </div>
+      `;
+      return scene;
+    }
+
+    let rollRounds = 0; // 회전 누적 카운트
+
+    // 주사위 개수 설정 및 초기화
+    function renderDice() {
+      const count = parseInt(diceCountSelect.value, 10);
+      diceContainer.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        diceContainer.appendChild(createDiceElement());
+      }
+      resultText.textContent = '주사위를 굴려보세요!';
+      resultTotal.textContent = '';
+    }
+
+    // 개수 변경 시 즉시 주사위 재생성
+    diceCountSelect.addEventListener('change', renderDice);
+
+    // 굴리기 버튼 클릭
+    rollBtn.addEventListener('click', () => {
+      rollBtn.disabled = true;
+      diceCountSelect.disabled = true;
+      resultText.textContent = '굴러가는 중...';
+      resultTotal.textContent = '';
+
+      rollRounds += 1;
+      const diceElements = document.querySelectorAll('.dice');
+      const results = [];
+
+      diceElements.forEach((dice, index) => {
+        // 각 주사위마다 1 ~ 6 난수 생성
+        const rollResult = Math.floor(Math.random() * 6) + 1;
+        results.push(rollResult);
+
+        // 각 주사위마다 약간씩 다른 회전량(2~4바퀴)을 줘서 자연스러움 연출
+        const turnsX = 360 * (rollRounds * 2 + (index % 2));
+        const turnsY = 360 * (rollRounds * 2 + ((index + 1) % 2));
+
+        const targetX = faceRotations[rollResult].x + turnsX;
+        const targetY = faceRotations[rollResult].y + turnsY;
+
+        dice.style.transform = `translateZ(-45px) rotateX(${targetX}deg) rotateY(${targetY}deg)`;
+      });
+
+      // 애니메이션 완료(1.2초) 후 결과 표시
+      setTimeout(() => {
+        const sum = results.reduce((acc, cur) => acc + cur, 0);
+        
+        if (results.length === 1) {
+          resultText.textContent = `결과: ${results[0]}`;
+        } else {
+          resultText.textContent = `나온 눈: [ ${results.join(', ')} ]`;
+          resultTotal.textContent = `총합: ${sum}`;
+        }
+
+        rollBtn.disabled = false;
+        diceCountSelect.disabled = false;
+      }, 1200);
+    });
+
+    // 최초 1개 렌더링
+    renderDice();
+  </script>
+</body>
+</html>
